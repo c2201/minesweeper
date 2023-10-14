@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Minesweeper</title>
+    <style>
+        /* CSS 样式 */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(10, 40px);
+            grid-template-rows: repeat(10, 40px);
+            gap: 1px;
+            background-color: #999;
+            padding: 5px;
+        }
+        .cell {
+            background-color: #ccc;
+            text-align: center;
+            line-height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .mine {
+            background-color: #f00;
+        }
+        .flag {
+            background-color: #fff;
+            color: #f00;
+        }
+    </style>
+</head>
+<body>
+    <div class="board"></div>
+
+    <script>
+        // JavaScript 逻辑
+        const board = document.querySelector('.board');
+        const rows = 10;
+        const cols = 10;
+        const minesCount = 10;
+        let mineLocations = [];
+        let revealedCount = 0;
+
+        // 创建扫雷棋盘
+        function createBoard() {
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    board.appendChild(cell);
+                }
+            }
+        }
+
+        function generateMines() {
+            for (let i = 0; i < minesCount; i++) {
+                let row, col;
+                do {
+                    row = Math.floor(Math.random() * rows);
+                    col = Math.floor(Math.random() * cols);
+                } while (mineLocations.includes(`${row}-${col}`));
+                mineLocations.push(`${row}-${col}`);
+            }
+        }
+
+        function getMineCount(row, col) {
+            const mineOffsets = [
+                [-1, -1], [-1, 0], [-1, 1],
+                [0, -1], [0, 1],
+                [1, -1], [1, 0], [1, 1]
+            ];
+            let mineCount = 0;
+            for (let offset of mineOffsets) {
+                const r = row + offset[0];
+                const c = col + offset[1];
+                if (r < 0 || r >= rows || c < 0 || c >= cols) {
+                    continue;
+                }
+                if (mineLocations.includes(`${r}-${c}`)) {
+                    mineCount++;
+                }
+            }
+            return mineCount;
+        }
+
+        function revealCell(cell) {
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            const isMine = mineLocations.includes(`${row}-${col}`);
+            if (cell.classList.contains('revealed') || cell.classList.contains('flag')) {
+                return;
+            }
+            if (isMine) {
+                cell.classList.add('mine');
+                gameOver(false);
+            } else {
+                revealedCount++;
+                cell.classList.add('revealed');
+                const mineCount = getMineCount(row, col);
+                if (mineCount > 0) {
+                    cell.textContent = mineCount;
+                } else {
+                    const offsets = [
+                        [-1, -1], [-1, 0], [-1, 1],
+                        [0, -1], [0, 1],
+                        [1, -1], [1, 0], [1, 1]
+                    ];
+                    for (let offset of offsets) {
+                        const r = row + offset[0];
+                        const c = col + offset[1];
+                        if (r < 0 || r >= rows || c < 0 || c >= cols) {
+                            continue;
+                        }
+                        const neighbor = document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`);
+                        if (neighbor && !neighbor.classList.contains('revealed')) {
+                            revealCell(neighbor);
+                        }
+                    }
+                }
+                if (revealedCount === rows * cols - minesCount) {
+                    gameOver(true);
+                }
+            }
+        }
+
+        function toggleFlag(cell) {
+            if (cell.classList.contains('revealed')) {
+                return;
+            }
+            cell.classList.toggle('flag');
+        }
+
+        // 绑定点击事件
+        function bindClickEvent() {
+            board.addEventListener('mousedown', function(e) {
+                if (e.target.classList.contains('cell')) {
+                    if (e.button === 0) {
+                        revealCell(e.target);
+                    } else if (e.button === 2) {
+                        e.preventDefault();
+                        toggleFlag(e.target);
+                    }
+                }
+            });
+        }
+
+        function gameOver(win) {
+            const message = win ? '你赢了！' : '你输了！';
+            alert(message);
+            // 重新开始游戏
+            mineLocations = [];
+            revealedCount = 0;
+            board.innerHTML = '';
+            initGame();
+        }
+
+        // 初始化游戏
+        function initGame() {
+            createBoard();
+            generateMines();
+            bindClickEvent();
+        }
+
+        // 启动游戏
+        initGame();
+    </script>
+</body>
+</html>
